@@ -1,8 +1,12 @@
 const express = require("express");
+require("dotenv").config();
+console.log("ENV FILE LOADED");
+console.log("MONGO_URI =", process.env.MONGO_URI);
 const mongoose = require("mongoose");
 const bcrypt = require("bcrypt");
 const cors = require("cors");
 const jwt = require("jsonwebtoken"); 
+const authMiddleware = require("./middleware/authMiddleware");
 
 
 const User = require("./models/users");
@@ -14,7 +18,7 @@ const app = express();
 // Middleware
 app.use(express.json());
 app.use(cors());
-require("dotenv").config();
+
 const MONGO_URI = process.env.MONGO_URI;
 const JWT_SECRET = process.env.JWT_SECRET;
 const PORT = process.env.PORT || 5000;
@@ -42,7 +46,7 @@ app.post("/api/register", async (req, res) => {
 });
 
  //Login
-app.post("/api/login", async (req, res) => {
+app.post("/api/login",async (req, res) => {
   try {
     const { email, password } = req.body;
 
@@ -64,7 +68,7 @@ app.post("/api/login", async (req, res) => {
 
     const token = jwt.sign(
       { id: user._id, email: user.email },
-      "SECRET_KEY",
+      JWT_SECRET,
       { expiresIn: "1h" }
     );
 
@@ -76,8 +80,12 @@ app.post("/api/login", async (req, res) => {
     res.status(500).json({ error: "Login failed" });
   }
 });
+//home
+app.get("/api/home",authMiddleware, (req, res) =>{
+     res.json({ message: "Welcome to the home page!", user: req.user });
+});
 
- 
+
      
 
 
@@ -95,7 +103,7 @@ app.post("/api/posts", async (req, res) => {
 });
 
 // Get all posts
-app.get("/api/posts", async (req, res) => {
+app.get("/api/posts",authMiddleware, async (req, res) => {
     try {
         const posts = await Post.find().populate("author", "username email");
         res.json(posts);

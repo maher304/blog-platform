@@ -5,28 +5,53 @@ const Home = () => {
   const [username, setUsername] = useState("");
   const [content, setContent] = useState("");
   const [posts, setPosts] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // Récupérer username depuis le token stocké
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (token) {
-      // JWT simple decode pour extraire le username ou email
-      const payload = JSON.parse(atob(token.split(".")[1]));
-      setUsername(payload.email); // ou payload.id selon ce que tu as mis dans JWT
-    }
-    fetchPosts();
-  }, []);
-
-  // Fonction pour récupérer tous les posts
-  const fetchPosts = async () => {
+  // Fonction pour récupérer tous les posts (définie en dehors de useEffect)
+  const fetchPosts = async (token) => {
     try {
-      const res = await fetch("http://localhost:5000/api/posts");
+      const res = await fetch("https://teens-satellite-please-chip.trycloudflare.com/api/posts", {
+        headers: { "Authorization": `Bearer ${token}` },
+      });
       const data = await res.json();
       setPosts(data);
+      return data; // si besoin
     } catch (err) {
       console.error(err);
     }
   };
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        window.location.href = "/login";
+        return;
+      }
+
+      try {
+        const res = await fetch("https://teens-satellite-please-chip.trycloudflare.com/api/home", {
+          headers: { "Authorization": `Bearer ${token}` },
+        });
+
+        if (res.status === 200) {
+          const data = await res.json();
+          setUsername(data.user.email);
+          await fetchPosts(token); // ici ok maintenant
+          setLoading(false);
+        } else {
+          localStorage.removeItem("token");
+          window.location.href = "/login";
+        }
+      } catch (err) {
+        console.error("Erreur auth:", err);
+        localStorage.removeItem("token");
+        window.location.href = "/login";
+      }
+    };
+
+    checkAuth();
+  }, []);
 
   // Fonction pour partager un post
   const handleShare = async () => {
@@ -35,21 +60,24 @@ const Home = () => {
       const token = localStorage.getItem("token");
       const payload = JSON.parse(atob(token.split(".")[1]));
 
-      const res = await fetch("http://localhost:5000/api/posts", {
+      const res = await fetch("https://teens-satellite-please-chip.trycloudflare.com/api/posts", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
         body: JSON.stringify({
-          title: "Post", // tu peux ajouter un champ title si besoin
+          title: "Post",
           content,
-          authorId: payload.id, // id de l'utilisateur connecté
+          authorId: payload.id,
         }),
       });
 
       const result = await res.json();
       if (res.status === 201) {
         alert("Post partagé !");
-        setContent(""); // vider textarea
-        fetchPosts(); // recharger les posts
+        setContent(""); 
+        await fetchPosts(token); // recharger les posts
       } else {
         alert(result.error);
       }
@@ -57,6 +85,8 @@ const Home = () => {
       alert("Erreur serveur: " + err.message);
     }
   };
+
+  if (loading) return <div>Loading...</div>;
 
   return (
     <div style={styles.container}>
@@ -81,7 +111,7 @@ const Home = () => {
 
       {/* Posts List */}
       <div style={styles.postsList}>
-        {posts.map((post) => (
+        {Array.isArray(posts) && posts.map((post) => (
           <div key={post._id} style={styles.post}>
             <strong>{post.author.username}</strong>
             <p>{post.content}</p>
@@ -91,7 +121,6 @@ const Home = () => {
     </div>
   );
 };
-
 const styles = {
   container: { maxWidth: "600px", margin: "0 auto", padding: "20px" },
   header: { display: "flex", alignItems: "center", gap: "10px", marginBottom: "20px" },
@@ -104,3 +133,6 @@ const styles = {
 };
 
 export default Home;
+
+
+

@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
-
+//
+//http://localhost:5000/api/register
 const Register =()=> {
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
@@ -9,7 +10,7 @@ const Register =()=> {
   const handleRegister = async (e) => {
     e.preventDefault();
     try {
-      const res = await fetch("http://localhost:5000/api/register", {
+      const res = await fetch("https://teens-satellite-please-chip.trycloudflare.com/api/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, email, password }),
