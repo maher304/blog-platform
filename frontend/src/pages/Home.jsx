@@ -1,16 +1,18 @@
 import React, { useState, useEffect } from "react";
 import { FaUserCircle } from "react-icons/fa";
+import { Link } from "react-router-dom";
 
 const Home = () => {
   const [username, setUsername] = useState("");
   const [content, setContent] = useState("");
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
+   
 
   // Fonction pour récupérer tous les posts (définie en dehors de useEffect)
   const fetchPosts = async (token) => {
     try {
-      const res = await fetch("https://teens-satellite-please-chip.trycloudflare.com/api/posts", {
+      const res = await fetch("http://localhost:5000/api/posts", {
         headers: { "Authorization": `Bearer ${token}` },
       });
       const data = await res.json();
@@ -30,7 +32,7 @@ const Home = () => {
       }
 
       try {
-        const res = await fetch("https://teens-satellite-please-chip.trycloudflare.com/api/home", {
+        const res = await fetch("http://localhost:5000/api/home", {
           headers: { "Authorization": `Bearer ${token}` },
         });
 
@@ -60,7 +62,7 @@ const Home = () => {
       const token = localStorage.getItem("token");
       const payload = JSON.parse(atob(token.split(".")[1]));
 
-      const res = await fetch("https://teens-satellite-please-chip.trycloudflare.com/api/posts", {
+      const res = await fetch("http://localhost:5000/api/posts", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -91,10 +93,15 @@ const Home = () => {
   return (
     <div style={styles.container}>
       {/* Header */}
-      <div style={styles.header}>
-        <FaUserCircle size={50} />
+      <Link to="/account" style={{ textDecoration: "none", color: "inherit" }}>
+       <div style={styles.header}>
+    <FaUserCircle size={50} />
         <span style={styles.username}>{username}</span>
+       
+      
       </div>
+      </Link>
+     
 
       {/* Create Post */}
       <div style={styles.createPost}>

@@ -113,6 +113,43 @@ app.get("/api/posts",authMiddleware, async (req, res) => {
     }
 });
 
+//get poste de ce profile 
+app.get("/api/postsaccount",authMiddleware,async (req,res)=>{
+  try{
+    const authorId = req.user.id; 
+    const postaccount = await Post.find({author: authorId} ).populate("author","username email");
+    res.json(postaccount);
+  } catch(err){
+    console.error(err);
+    res.status(500).json({error:"failed to fetch posts de ce accout"});
+  }
+}
+);
+//modihfier les poste
+app.put("/api/posts/:id", authMiddleware, async (req, res) => {
+  try {
+    const postId = req.params.id;
+    const { title, content } = req.body;
+    const userId = req.user.id;
+
+    const post = await Post.findById(postId);
+    if (!post) return res.status(404).json({ error: "Post non trouvé" });
+    if (post.author.toString() !== userId)
+      return res.status(403).json({ error: "Pas autorisé" });
+
+    const updatedPost = await Post.findByIdAndUpdate(
+      postId,
+      { title, content },
+      { new: true }
+    );
+
+    res.status(200).json(updatedPost); // ✅ doit renvoyer JSON
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Erreur serveur" });
+  }
+});
+
 // Start server
 app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
