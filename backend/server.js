@@ -150,6 +150,38 @@ app.put("/api/posts/:id", authMiddleware, async (req, res) => {
   }
 });
 
+//suprimer le poste 
+
+app.delete("/api/posts/:id", authMiddleware, async (req, res) => {
+  try {
+    const postId = req.params.id;
+    const userId = req.user.id;
+
+    // 1️⃣ Trouver le post
+    const post = await Post.findById(postId);
+
+    if (!post) {
+      return res.status(404).json({ message: "Post introuvable" });
+    }
+
+    // 2️⃣ Vérifier le propriétaire
+    if (post.author.toString() !== userId) {
+      return res.status(403).json({ message: "Accès refusé" });
+    }
+
+    // 3️⃣ Supprimer le post
+    await post.deleteOne();
+
+    // 4️⃣ Réponse
+    res.status(200).json({ message: "Post supprimé avec succès" });
+
+  } catch (error) {
+    res.status(500).json({ message: "Erreur serveur" });
+  }
+});
+
+
+
 // Start server
 app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);

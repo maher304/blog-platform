@@ -38,6 +38,35 @@ const Account = () => {
   const handleEdit = (id) => {
     setPosts(posts.map(p => p._id === id ? { ...p, editing: true } : p));
   };
+ // supprimer un post
+const handleDelete = async (id) => {
+  const token = localStorage.getItem("token");
+  if (!token) return;
+
+  try {
+    const res = await fetch(`http://localhost:5000/api/posts/${id}`, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (res.status===500) {
+      alert("Erreur lors de la suppression");
+    }
+if (res.status === 200){ 
+  alert("poste supprimer avec succes");
+}
+    console.log("Post supprimé avec succès");
+
+    // OPTIONNEL : mettre à jour le state (important pour le CRUD)
+    // setPosts(posts.filter(post => post._id !== id));
+
+  } catch (error) {
+    console.error(error.message);
+  }
+};
+
 
   // 🔹 Annuler l'édition
   const handleCancel = (id) => {
@@ -119,6 +148,7 @@ const Account = () => {
                   <h3>{post.title}</h3>
                   <p>{post.content}</p>
                   <button onClick={() => handleEdit(post._id)}>Modifier</button>
+                  <button onClick={() => handleDelete(post._id)}>Supprimer</button>
                 </>
               )}
             </div>
