@@ -106,6 +106,7 @@ const Home = () => {
       {/* Create Post */}
       <div style={styles.createPost}>
         <textarea
+        className="editor-blue"
           placeholder="Écrivez quelque chose..."
           value={content}
           onChange={(e) => setContent(e.target.value)}
@@ -133,8 +134,32 @@ const styles = {
   header: { display: "flex", alignItems: "center", gap: "10px", marginBottom: "20px" },
   username: { fontSize: "20px", fontWeight: "bold" },
   createPost: { display: "flex", flexDirection: "column", gap: "10px", marginBottom: "30px" },
-  textarea: { width: "100%", height: "80px", padding: "10px", fontSize: "16px" },
-  button: { padding: "10px", fontSize: "16px", cursor: "pointer" },
+   textarea: {
+    width: "100%",
+    height: "80px",
+    padding: "18px",
+    fontSize: "16px",
+
+    background: "linear-gradient(180deg, #0B1C2D, #0E2438)", // fond bleu dark
+    color: "#EAF2FF",                                       // texte clair
+    border: "1px solid #1E3A5F",                            // bord bleu sombre
+    borderRadius: "14px",
+    lineHeight: "1.8",
+    resize: "vertical"
+  },
+  button: {
+  padding: "12px",
+  fontSize: "16px",
+  cursor: "pointer",
+
+  background: "linear-gradient(135deg, #3B82F6, #2563EB)", // bleu gradient
+  color: "#EAF2FF", // texte clair
+  border: "none",
+  borderRadius: "12px",
+
+  fontWeight: 600,
+  transition: "all 0.3s ease", // transition pour hover
+},
   postsList: { display: "flex", flexDirection: "column", gap: "15px" },
   post: { border: "1px solid #ccc", padding: "10px", borderRadius: "8px" },
 };
