@@ -37,7 +37,7 @@ const Login = () => {
     }
   };
 
-  // ✅ Styles inline bleu dark prestige
+  //  Styles inline bleu dark prestige
   const styles = {
     page: {
       minHeight: "100vh",

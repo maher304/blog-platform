@@ -36,7 +36,7 @@ app.post("/api/register", async (req, res) => {
         const { username, email, password } = req.body;
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        const user = new User({ username, email, password: hashedPassword });
+        const user = new User({ username, email, password: hashedPassword,badge: "normal" });
         await user.save();
         res.status(201).json({ message: "User created successfully" });
     } catch (err) {
@@ -81,32 +81,71 @@ app.post("/api/login",async (req, res) => {
   }
 });
 //home
-app.get("/api/home",authMiddleware, (req, res) =>{
-     res.json({ message: "Welcome to the home page!", user: req.user });
+app.get("/api/home", authMiddleware, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id); // Récupère le badge actuel depuis la DB
+    res.json({ message: "Welcome to the home page!", user });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to fetch user" });
+  }
 });
 
+function updateBadge(user) {
+  if (user.score >= 200) user.badge = "diamant";
+  else if (user.score >= 150) user.badge = "gold";
+  else if (user.score >= 100) user.badge = "argent";
+  else if (user.score >= 50) user.badge = "bronze";
+  else user.badge = "normal";
+  return user;
+}
 
      
 
 
 // Create Post
-app.post("/api/posts", async (req, res) => {
-    try {
-        const { title, content, authorId } = req.body;
-        const post = new Post({ title, content, author: authorId });
-        await post.save();
-        res.status(201).json({ message: "Post created successfully" });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: "Failed to create post" });
-    }
+// Créer un post avec score + badge
+app.post("/api/posts", authMiddleware, async (req, res) => {
+  try {
+    const { title, content } = req.body;
+    const authorId = req.user.id; // récupéré depuis le token
+
+    // Créer le post
+    const post = new Post({ title, content, author: authorId });
+    await post.save();
+
+    // Mettre à jour le score
+    const updatedUser = await User.findByIdAndUpdate(
+      authorId,
+      { $inc: { score: 10 } },
+      { new: true }
+    );
+
+    // Mettre à jour le badge selon le nouveau score
+    let badge = "normal";
+    if (updatedUser.score >= 200) badge = "diamond";
+    else if (updatedUser.score >= 150) badge = "gold";
+    else if (updatedUser.score >= 100) badge = "silver";
+    else if (updatedUser.score >= 50) badge = "bronze";
+
+    updatedUser.badge = badge;
+    await updatedUser.save();
+
+    res.status(201).json({ message: "Post created successfully", post, user: updatedUser });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to create post" });
+  }
 });
+
 
 // Get all posts
 app.get("/api/posts",authMiddleware, async (req, res) => {
     try {
-        const posts = await Post.find().populate("author", "username email");
-        res.json(posts);
+const posts = await Post.find()
+  .populate("author", "username email badge") // ⚡ ajoute badge
+  .populate("comments.user", "username badge")
+  .sort({ "author.score": -1 });        res.json(posts);
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: "Failed to fetch posts" });
@@ -179,6 +218,81 @@ app.delete("/api/posts/:id", authMiddleware, async (req, res) => {
     res.status(500).json({ message: "Erreur serveur" });
   }
 });
+app.post("/api/posts/:id/like", authMiddleware, async (req, res) => {
+  try {
+    const postId = req.params.id;
+    const userId = req.user.id;
+
+    const post = await Post.findById(postId);
+    if (!post) return res.status(404).json({ error: "Post non trouvé" });
+
+    const author = await User.findById(post.author); // récupérer l'auteur du post
+
+    if (post.likes.includes(userId)) {
+      post.likes.pull(userId);
+      author.score -= 20;
+    } else {
+      post.likes.push(userId);
+      author.score += 20;
+    }
+
+    // Mettre à jour le badge
+    author.badge = updateBadge(author).badge;
+    await author.save();
+    await post.save();
+
+    res.status(200).json({ message: "Like mis à jour", post });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Erreur serveur" });
+  }
+});
+
+
+//ajouteu un commentaire 
+app.post("/api/posts/:id/comment", authMiddleware, async (req, res) => {
+  try {
+    const postId = req.params.id;
+    const userId = req.user.id;
+    const { text } = req.body;
+
+    const post = await Post.findById(postId);
+    if (!post) return res.status(404).json({ error: "Post non trouvé" });
+
+    post.comments.push({ user: userId, text });
+
+    const author = await User.findById(post.author);
+    author.score += 50;
+
+    // Mettre à jour le badge
+    author.badge = updateBadge(author).badge;
+    await author.save();
+    await post.save();
+
+    const updatedPost = await Post.findById(postId)
+      .populate("author", "username email badge")
+      .populate("comments.user", "username badge");
+
+    res.status(200).json(updatedPost);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Erreur serveur" });
+  }
+});
+
+
+(async () => {
+  try {
+    const users = await User.find();
+    for (let user of users) {
+      user.badge = updateBadge(user).badge;
+      await user.save();
+    }
+    console.log("Tous les badges ont été mis à jour !");
+  } catch (err) {
+    console.error("Erreur lors de la mise à jour des badges :", err);
+  }
+})();
 
 
 
